@@ -405,7 +405,7 @@ const Footer = ({ ...props }) => (
           <Icon icon="youtube" /> Youtube
         </FooterLink>
         <FooterLink tertiary href="https://componentdriven.org/">
-          Component Driven UIs
+          <Icon icon="componentdriven" /> Component Driven UIs
         </FooterLink>
       </Column>
       <Subscribe>
