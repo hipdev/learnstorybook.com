@@ -1,57 +1,57 @@
 ---
-title: 'Introduction to addons'
+title: 'How to actually test UIs'
 tocTitle: 'Introduction'
-description: 'The anatomy of an addon'
+description: 'Testing techniques used by leading engineering teams'
 ---
 
-<div class="aside">This guide is made for <b>professional developers</b> learning how to build Storybook addons. Intermediate experience in JavaScript and React is recommended. You should also know Storybook basics, such as writing a story and editing config files (<a href="/intro-to-storybook">Intro to Storybook</a> teaches basics).
+<div class="aside">This guide is made for <b>professional developers</b> learning how to test UI components. Intermediate experience in JavaScript and React is recommended. You should also know Storybook basics, such as writing a story and editing config files (<a href="/intro-to-storybook">Intro to Storybook</a> covers all the basics).
 </div>
 
 <br/>
 
-Storybook is a tool for developing UI components outside your app in an isolated environment. Addons allow you to enhance and automate parts of this workflow. In fact, most of Storybook's core features are implemented as addons. For instance: [documentation](https://storybook.js.org/docs/react/writing-docs/introduction), [accessibility testing](https://storybook.js.org/addons/@storybook/addon-a11y) and [interactive controls](https://storybook.js.org/docs/react/essentials/controls), among others. There are also [over 200](https://storybook.js.org/addons) addons made by the community that unlock time-savings for UI developers.
+Testing UIs is awkward. Users expect frequent releases packed with features. But every new feature introduces more UI and new states that you then have to test. Every testing tool promises “easy, not flaky, fast”, but has trade-offs in the fine print.
 
-## What are we going to build?
+How do leading front-end teams keep up? What's their testing strategy, and what methods do they use? I researched ten teams from the Storybook community to learn what works — Twilio, Adobe, Peloton, Shopify and more.
 
-It's tough to tell if your CSS layout matches the design. Eyeballing alignment is tricky when DOM elements are far apart or have odd shapes.
+This post highlights UI testing techniques used by scaled engineering teams. That way, you can create a pragmatic testing strategy that balances coverage, setup, and maintenance. Along the way, we'll point out pitfalls to avoid.
 
-The [Outline addon](https://storybook.js.org/addons/storybook-addon-outline) adds a toolbar button that outlines all UI elements, using CSS. That makes it easy to verify positioning and placement in a glance. Check out the example below.
+## What are we testing?
 
-![Outline Addon](../../images/outline-addon-hero.gif)
+All major JavaScript frameworks are component-driven. That means UIs are built from the “bottom-up”, starting with atomic components and progressively composed into pages.
 
-## The anatomy of an addon
+Remember, every piece of UI is now a component. Yup, that includes pages. The only difference between a page and a button is how they consume data.
 
-Addons allow you to extend what’s possible with Storybook. Everything from the interface to the APIs. They ⚡supercharge⚡ the UI development workflow.
+Therefore, testing UI is now synonymous with testing components.
 
-There are two broad category of addons:
+![Component hierarchy: atomic, compositions, Pages and Apps](/ui-testing-handbook/component-testing.gif)
 
-- **UI-based:** customize the interface, add shortcuts for repetitive tasks or format and display additional information. For instance: documentation, accessibility testing, interactive controls, and design previews.
+When it comes to components, the distinction between different testing methods can be blurry. Instead of focusing on terminology, let’s consider what characteristics of UIs warrant testing.
 
-- **Presets:** a collection of Storybook configurations that get applied automatically. These are often used to quickly pair Storybook with a specific technology. For example, the preset-create-react-app, preset-nuxt and preset-scss.
+- **Visual:** does a component render correctly given a set of props or state?
+- **Composition:** do multiple components work together?
+- **Interaction:** are events handled as intended?
+- **Accessibility:** is the UI accessible?
+- **User flows:** do complex interactions across various components work?
 
-## UI-based addons
+## Where should you focus?
 
-Addons can create three types of interface elements:
+A comprehensive UI testing strategy balances effort and value. But there are so many ways to test that it can be overwhelming to figure out what’s right for any given situation. That’s why many teams evaluate different testing techniques using the criteria below.
 
-1. You can add a tool to the Toolbar, for example the [Grid and Background](https://storybook.js.org/docs/react/essentials/backgrounds) tools
+- 💰 **Maintenance cost:** time and effort required to write and maintain the tests.
+- ⏱️ **Iteration speed:** how fast is the feedback loop between making a change and seeing the result.
+- 🖼 **Realistic environment:** where the tests are executed—in a real browser or a simulated environment like JSDOM.
+- 🔍 **Isolate failures:** a test fails, how quickly can you identify the source of the failure.
+- 🤒 **Test Flake:** false positives/negatives defeat the purpose of testing.
 
-![](../../images/toolbar.png)
+For example, end-to-end testing simulates “real” user flows but isn’t practical to apply everywhere. The key advantage of testing in a web browser is also a disadvantage. Tests take longer to run, and there are more points of failure (flake!).
 
-2. Create an addon Panel similar to the [Actions addon](https://storybook.js.org/docs/react/essentials/actions) which displays a log of actions
+Now that we’ve covered the UI characteristics to test and the criteria to evaluate each testing method, let’s see how teams design their test strategy.
 
-![](../../images/panel.png)
+> "Testing gives me full confidence for automated dependency updates. If tests pass, we merge them in."
+> — Simon Taggart, Principal Engineer at Twilio
 
-3. Create a new Tab much like [Storybook Docs](https://storybook.js.org/docs/react/writing-docs/introduction) which displays the component documentation.
+## Visual testing: does this look right?
 
-![](../../images/tab.png)
+Modern interfaces have countless variations. The more you have, the tougher it is to confirm that they all render correctly in users' devices and browsers.
 
-It’s clear that addons can do a lot. So what does our addon do?
-
-The Outline addon allows a developer to click a button in the toolbar to draw outlines around each element in the story. When they click that button again, all the outlines are removed.
-
-Our addon code has four parts that we'll cover in the next few chapters:
-
-- **Addon UI** that creates the “tool” button in the toolbar. This is what the user clicks.
-- **Registration** of the addon with Storybook.
-- **State management** to track the toggle state of the tool. This controls whether the outlines are visible or not.
-- **Decorator** that injects CSS in the preview iframe to draw the outlines.
+In the past, you’d have to spin up the app, navigate to a page, and do all kinds of contortions to get the UI into the right state.
