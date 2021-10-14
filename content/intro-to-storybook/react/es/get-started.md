@@ -1,5 +1,5 @@
 ---
-title: 'Storybook para React tutorial'
+title: 'Tutorial de Storybook para React'
 tocTitle: 'Empezando'
 description: 'Configurar React Storybook en tu entorno de desarrollo'
 commit: '6fdf7e3'
@@ -11,46 +11,71 @@ Storybook se ejecuta junto con tu aplicación en modo desarrollo. Te ayuda a cre
 
 ## Configurando React Storybook
 
-Necesitaremos seguir algunos pasos para configurar el proceso de build de nuestro entorno. Para iniciar, vamos a usar [Create React App](https://github.com/facebook/create-react-app) (CRA) para configurar nuestro sistema de build, y añadiremos [Storybook](https://storybook.js.org/) y [Jest](https://facebook.github.io/jest/) para testear nuestra aplicación creada. Vamos a ejecutar los siguientes comandos:
+Necesitaremos seguir algunos pasos para configurar el proceso de build de nuestro entorno. Para iniciar, vamos a usar [degit](https://github.com/Rich-Harris/degit) para configurar nuestro sistema de build. Usando este paquete usted puede descargar "Plantillas" (aplicaciones parcialmente construidas con alguna configuración predeterminada) para ayudarlo a acelerar su flujo de desarrollo.
+
+Ejecutemos los siguientes comandos:
 
 ```bash
-# Crea nuestra aplicación:
-npx create-react-app taskbox
+# Clonar la plantilla
+npx degit chromaui/intro-storybook-react-template taskbox
+
 cd taskbox
 
-# Añade Storybook:
-npx -p @storybook/cli sb init
+# Instalar las dependencias
+yarn
 ```
+
+<div class="aside">
+💡 Esta plantilla contiene los estilos, recursos y configuraciones esenciales necesarios para esta versión del tutorial.
+</div>
 
 Podemos comprobar rápidamente que los distintos entornos de nuestra aplicación funcionan correctamente:
 
 ```bash
 # Corre el test de prueba (Jest) en una terminal:
-yarn test
+yarn test --watchAll
 
 # Inicia el explorador de componentes en el puerto 6006:
-yarn run storybook
+yarn storybook
 
 # Ejecuta el frontend de la aplicación en el puerto 3000:
 yarn start
 ```
 
-Nuestras tres modalidades del frontend de la aplicación: test automatizado (Jest), desarrollo de componentes (Storybook) y la propia aplicación.
+<div class="aside"> 
+💡 Observe el indicador <code>--watchAll</code> en el comando test, incluir este indicador garantiza que se ejecuten todas las pruebas. A medida que avanza en este tutorial, se le presentarán diferentes escenarios de prueba. Tal vez pueda considerar ajustar sus scripts en el  <code>package.json</code> en consecuencia.
+</div>
+
+Nuestras tres modalidades del frontend de la aplicación son: test automatizado (Jest), desarrollo de componentes (Storybook) y la propia aplicación.
 
 ![3 modalidades](/intro-to-storybook/app-three-modalities.png)
 
 Dependiendo de en qué parte de la aplicación estés trabajando, es posible que quieras ejecutar uno o más de estos simultáneamente. Dado que nuestro objetivo actual es crear un único componente de UI, seguiremos ejecutando Storybook.
 
-## Reusa CSS
+## Confirmar cambios
 
-Taskbox reutiliza elementos de diseño de la aplicación de ejemplo de este [Tutorial de GraphQL y React](https://www.chromatic.com/blog/graphql-react-tutorial-part-1-6), por lo que no necesitaremos escribir CSS en este tutorial. Simplemente compilaremos nuestros archivos LESS en un único archivo CSS y lo incluiremos en nuestra aplicación. Copia y pega [este CSS compilado](https://github.com/chromaui/learnstorybook-code/blob/master/src/index.css) dentro del archivo src/index.css según la convención de CRA.
+En esta etapa, es seguro agregar nuestros archivos a un repositorio local. Ejecute los siguientes comandos para inicializar un repositorio local, agregue y confirme los cambios que hemos realizado hasta ahora.
 
-![Buzón de tareas UI](/intro-to-storybook/ss-browserchrome-taskbox-learnstorybook.png)
+```shell
+$ git init
+```
 
-<div class="aside">
-Si deseas modificar los estilos, los archivos fuente de CSS en formato LESS son proporcionados en el mismo repositorio de GitHub.</div>
+Seguido por:
 
-## Añade recursos
+```shell
+$ git add .
+```
 
-También necesitamos añadir la fuente y el icono de este [directorio](https://github.com/chromaui/learnstorybook-code/tree/master/src/assets/) a la carpeta `src/assets`.
-Después de añadir los estilos y recursos, nuestra aplicación se renderizará de forma un poco extraña. Está bien. No estamos trabajando en la aplicación ahora mismo. Comenzamos con la construcción de nuestro primer componente!
+Luego:
+
+```shell
+$ git commit -m "primer commit"
+```
+
+Y finalmente:
+
+```shell
+$ git branch -M main
+```
+
+¡Comencemos a construir nuestro primer componente!
