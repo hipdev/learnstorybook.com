@@ -18,15 +18,13 @@ Construiremos nuestra UI siguiendo la metodología (CDD) [Component-Driven Devel
 
 A medida que comencemos a construir `Task`, primero escribiremos nuestros tests para los estados que corresponden a los distintos tipos de tareas descritas anteriormente. Luego, utilizamos Storybook para construir el componente de forma aislada usando datos de prueba. Vamos a “testear visualmente” la apariencia del componente a medida que cambiemos cada estado.
 
-Este proceso es similar a [Test-driven development](https://en.wikipedia.org/wiki/Test-driven_development) (TDD) al que podemos llamar “[Visual TDD](https://www.chromatic.com/blog/visual-test-driven-development)”.
-
 ## Ajustes iniciales
 
 Primero, vamos a crear el componente Task y el archivo de historias de storybook que lo acompaña: `src/components/Task.js` y `src/components/Task.stories.js`.
 
 Comenzaremos con una implementación básica de `Task`, simplemente teniendo en cuenta los atributos que sabemos que necesitaremos y las dos acciones que puedes realizar con una tarea (para moverla entre las listas):
 
-```javascript
+```js:title=src/components/Task.js
 import React from 'react';
 
 export default function Task({ task: { id, title, state }, onArchiveTask, onPinTask }) {
@@ -42,29 +40,43 @@ Arriba, renderizamos directamente `Task` basándonos en la estructura HTML exist
 
 A continuación creamos los tres estados de prueba de Task dentro del archivo de historia:
 
-```javascript
+```js:title=src/components/Task.stories.js
 import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
 
 import Task from './Task';
 
-export const task = {
-  id: '1',
-  title: 'Test Task',
-  state: 'TASK_INBOX',
-  updatedAt: new Date(2018, 0, 1, 9, 0),
+export default {
+  component: Task,
+  title: 'Task',
 };
 
-export const actions = {
-  onPinTask: action('onPinTask'),
-  onArchiveTask: action('onArchiveTask'),
+const Template = args => <Task {...args} />;
+
+export const Default = Template.bind({});
+Default.args = {
+  task: {
+    id: '1',
+    title: 'Test Task',
+    state: 'TASK_INBOX',
+    updatedAt: new Date(2021, 0, 1, 9, 0),
+  },
 };
 
-storiesOf('Task', module)
-  .add('default', () => <Task task={task} {...actions} />)
-  .add('pinned', () => <Task task={{ ...task, state: 'TASK_PINNED' }} {...actions} />)
-  .add('archived', () => <Task task={{ ...task, state: 'TASK_ARCHIVED' }} {...actions} />);
+export const Pinned = Template.bind({});
+Pinned.args = {
+  task: {
+    ...Default.args.task,
+    state: 'TASK_PINNED',
+  },
+};
+
+export const Archived = Template.bind({});
+Archived.args = {
+  task: {
+    ...Default.args.task,
+    state: 'TASK_ARCHIVED',
+  },
+};
 ```
 
 Existen dos niveles básicos de organización en Storybook. El componente y sus historias hijas. Piensa en cada historia como una permutación posible del componente. Puedes tener tantas historias por componente como se necesite.
@@ -74,17 +86,22 @@ Existen dos niveles básicos de organización en Storybook. El componente y sus 
   - Historia
   - Historia
 
-Para iniciar Storybook, primero invocamos a la función `storiesOf()` para registrar el componente. Agregamos un nombre para mostrar el componente, que se muestra en la barra lateral de la aplicación Storybook.
+Para decirle a Storybook sobre el componente que estamos documentando, creamos una exportación `default`(por defecto), que contiene:
 
-`action()` nos permite crear un callback que aparecerá en el panel **actions** de la UI de Storybook cuando es cliqueado. Entonces, cuando construyamos un botón pin, podremos determinar en la UI de prueba si un click en el botón es exitoso o no.
+- `component` - el componente en sí,
+- `title` - cómo hacer referencia al componente en la barra lateral de la aplicación Storybook,
 
-Como necesitamos pasarle el mismo conjunto de acciones a todas las permutaciones de nuestro componente, es conveniente agruparlas en una sola variable `actions` y utilizar `{...actions}`, la expansión de propiedades de React, para pasarlas todas a la vez. `<Task {...actions}>` es equivalente a `<Task onPinTask={actions.onPinTask} onArchiveTask={actions.onArchiveTask}>`.
+Para definir nuestras historias, exportamos una función para cada uno de nuestros estados de prueba para generar una historia. La historia es una función que retorna un elemento renderizado (es decir, un componente con un conjunto de props) en un estado dado, exactamente como un [Componente funcional](https://reactjs.org/docs/components-and-props.html#function-and-class-components).
 
-Otra cosa positiva acerca de agrupar las `actions` que un componente necesita, es que puedes usar `export` y utilizarlas en historias para otros componentes que reutilicen este componente, como veremos luego.
+Como tenemos múltiples permutaciones de nuestro componente, es conveniente asignarlo a una variable "Template" (Plantilla). La introducción de este patrón en sus historias reducirá la cantidad de código que necesita escribir y mantener.
 
-Para definir nuestras historias, llamamos a `add()` una vez para cada uno de nuestros estados del test para generar una historia. La historia de acción - action story - es una función que retorna un elemento renderizado (es decir, una clase componente con un conjunto de props) en un estado dado---exactamente como en React [Functional Component](https://reactjs.org/docs/components-and-props.html#function-and-class-components).
+<div class="aside">
+💡 <code> Template.bind({})</code> es un método <a href = "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind" > estandar de JavaScript </a> para hacer una copia de una función. Usamos esta técnica para permitir que cada historia exportada establezca sus propias propiedades, pero usamos la misma implementación.
+</div>
 
-Al crear una historia utilizamos una historia base (`task`) para construir la forma de la task que el componente espera. Esto generalmente se modela a partir del aspecto de los datos verdaderos. Nuevamente, `export`-ando esta función nos permitirá reutilizarla en historias posteriores, como veremos.
+Los argumentos o [`args`](https://storybook.js.org/docs/react/writing-stories/args) para abreviar, nos permiten editar en vivo nuestros componentes con el complemento de controles sin reiniciar Storybook. Una vez que un valor de [`args`](https://storybook.js.org/docs/react/writing-stories/args) cambia, también cambia el componente.
+
+Al crear una historia usamos un argumento de una tarea o `task` base para construir la forma de la tarea que espera el componente. Por lo general, esto se modela a partir de cómo se ven los datos reales. Nuevamente, `export`(exportar) de esta forma nos permitirá reutilizarla en historias posteriores, como veremos.
 
 <div class="aside">
 Las <a href="https://storybook.js.org/docs/react/essentials/actions"><b>Acciones</b></a> ayudan a verificar las interacciones cuando creamos componentes UI en aislamiento. A menudo no tendrás acceso a las funciones y el estado que tienes en el contexto de la aplicación. Utiliza <code>action()</code> para agregarlas.
@@ -92,26 +109,45 @@ Las <a href="https://storybook.js.org/docs/react/essentials/actions"><b>Acciones
 
 ## Configuración
 
-También necesitamos hacer un pequeño cambio en la configuración de Storybook (`.storybook/config.js`) para que tenga en cuenta nuestros archivos `.stories.js` y use nuestro archivo CSS. Por defecto, Storybook busca historias en el directorio `/stories`; este tutorial usa un esquema de nombres que es similar al esquema de nombres `.test.js` preferido por CRA para pruebas -tests- automatizadas.
+Tendremos que hacer un par de cambios en los archivos de configuración de Storybook para que no solo note nuestras historias creadas recientemente y nos permita usar el archivo CSS de la aplicación (ubicado en `src / index.css`).
 
-```javascript
-import { configure } from '@storybook/react';
-import '../src/index.css';
+Comience cambiando su archivo de configuración de Storybook (`.storybook / main.js`) a lo siguiente:
 
-const req = require.context('../src', true, /\.stories.js$/);
-
-function loadStories() {
-  req.keys().forEach(filename => req(filename));
-}
-
-configure(loadStories, module);
+```diff:title=.storybook/main.js
+module.exports = {
+- stories: [
+-   '../src/**/*.stories.mdx',
+-   '../src/**/*.stories.@(js|jsx|ts|tsx)'
+- ],
++ stories: ['../src/components/**/*.stories.js'],
+  addons: [
+    '@storybook/addon-links',
+    '@storybook/addon-essentials',
+    '@storybook/preset-create-react-app',
+  ],
+};
 ```
+
+Después de completar el cambio anterior, dentro de la carpeta `.storybook`, cambie su` preview.js` a lo siguiente:
+
+```diff:title=.storybook/preview.js
++ import '../src/index.css';
+
+//👇 Configura Storybook para registrar las acciones (onArchiveTask y onPinTask) en la UI(interfaz de usuario).
+export const parameters = {
+  actions: { argTypesRegex: '^on[A-Z].*' },
+};
+```
+
+Los [`parameters`](https://storybook.js.org/docs/react/writing-stories/parameters) se utilizan normalmente para controlar el comportamiento de las funciones y complementos de Storybook. En nuestro caso, los usaremos para configurar cómo se manejan las `acciones` (devoluciones de llamada simuladas).
+
+`actions` nos permite crear callbacks (devoluciones de llamada) que aparecen en el panel de **actions** de la UI de Storybook cuando se les hace clic. Así que, cuando creamos un botón con un pin, podremos determinar en la UI de prueba si el clic de un botón es exitoso.
 
 Una vez que hayamos hecho esto, reiniciando el servidor de Storybook debería producir casos de prueba para los tres estados de Task:
 
-<video autoPlay muted playsInline controls >
+<video autoPlay muted playsInline loop>
   <source
-    src="/intro-to-storybook//inprogress-task-states.mp4"
+    src="/intro-to-storybook/inprogress-task-states-6-0.mp4"
     type="video/mp4"
   />
 </video>
@@ -122,7 +158,7 @@ Ahora tenemos configurado Storybook, los estilos importados y los casos de prueb
 
 El componente todavía es básico. Primero escribiremos el código que se aproxima al diseño sin entrar en demasiados detalles:
 
-```javascript
+```js:title=src/components/Task.js
 import React from 'react';
 
 export default function Task({ task: { id, title, state }, onArchiveTask, onPinTask }) {
@@ -143,6 +179,7 @@ export default function Task({ task: { id, title, state }, onArchiveTask, onPinT
 
       <div className="actions" onClick={event => event.stopPropagation()}>
         {state !== 'TASK_ARCHIVED' && (
+          // eslint-disable-next-line jsx-a11y/anchor-is-valid
           <a onClick={() => onPinTask(id)}>
             <span className={`icon-star`} />
           </a>
@@ -157,7 +194,7 @@ El maquetado adicional de arriba, combinado con el CSS que hemos importado antes
 
 <video autoPlay muted playsInline loop>
   <source
-    src="/intro-to-storybook/finished-task-states.mp4"
+    src="/intro-to-storybook/finished-task-states-6-0.mp4"
     type="video/mp4"
   />
 </video>
@@ -166,25 +203,29 @@ El maquetado adicional de arriba, combinado con el CSS que hemos importado antes
 
 Es una buena práctica en React utilizar `propTypes` para especificar la forma de los datos que espera recibir un componente. No sólo se auto documenta, sino que también ayuda a detectar problemas rápidamente.
 
-```javascript
-// src/components/Task.js
-
+```diff:title=src/components/Task.js
 import React from 'react';
-import PropTypes from 'prop-types';
++ import PropTypes from 'prop-types';
 
 export default function Task({ task: { id, title, state }, onArchiveTask, onPinTask }) {
   // ...
 }
 
-Task.propTypes = {
-  task: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    title: PropTypes.string.isRequired,
-    state: PropTypes.string.isRequired,
-  }),
-  onArchiveTask: PropTypes.func,
-  onPinTask: PropTypes.func,
-};
++ Task.propTypes = {
++  /** Composition of the task */
++  task: PropTypes.shape({
++    /** Id of the task */
++    id: PropTypes.string.isRequired,
++    /** Title of the task */
++    title: PropTypes.string.isRequired,
++    /** Current state of the task */
++    state: PropTypes.string.isRequired,
++  }),
++  /** Event to change the task to archived */
++  onArchiveTask: PropTypes.func,
++  /** Event to change the task to pinned */
++  onPinTask: PropTypes.func,
++ };
 ```
 
 Ahora aparecerá una advertencia en modo desarrollo si el componente Task se utiliza incorrectamente.
@@ -207,15 +248,19 @@ Storybook nos dio una excelente manera de probar visualmente nuestra aplicación
 
 La prueba de instantáneas se refiere a la práctica de registrar la salida "correcta" de un componente para una entrada dada y luego en el futuro marcar el componente siempre que la salida cambie. Esto complementa a Storybook, porque es una manera rápida de ver la nueva versión de un componente y verificar los cambios.
 
+<div class="aside">
+💡 Asegúrese de que sus componentes rendericen datos que no cambien, de modo que sus pruebas de instantáneas no fallen cada vez. Tenga cuidado con cosas como fechas o valores generados aleatoriamente.
+</div>
+
 Con [Storyshots addon](https://github.com/storybooks/storybook/tree/master/addons/storyshots) se crea una prueba de instantánea para cada una de las historias. Usalo agregando una dependencia en modo desarrollo en el paquete:
 
 ```bash
-yarn add --dev @storybook/addon-storyshots react-test-renderer
+yarn add -D @storybook/addon-storyshots react-test-renderer
 ```
 
 Luego crea un archivo `src/storybook.test.js` con el siguiente contenido:
 
-```javascript
+```js:title=src/storybook.test.js
 import initStoryshots from '@storybook/addon-storyshots';
 initStoryshots();
 ```
@@ -225,3 +270,7 @@ Una vez hecho lo anterior, podemos ejecutar `yarn test` y veremos el siguiente r
 ![Task test runner](/intro-to-storybook/task-testrunner.png)
 
 Ahora tenemos una prueba de instantánea para cada una de las historias de `Task`. Si cambiamos la implementación de `Task`, se nos pedirá que verifiquemos los cambios.
+
+<div class="aside">
+💡 ¡No olvides confirmar tus cambios con git!
+</div>
