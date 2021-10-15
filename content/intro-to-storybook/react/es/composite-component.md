@@ -46,7 +46,7 @@ function TaskList({ loading, tasks, onPinTask, onArchiveTask }) {
 
   return (
     <div className="list-items">
-      {tasks.map(task => (
+      {tasks.map((task) => (
         <Task key={task.id} task={task} {...events} />
       ))}
     </div>
@@ -58,50 +58,70 @@ export default TaskList;
 
 A continuación, crea los estados de prueba de `Tasklist` en el archivo de historia.
 
-```javascript
-// src/components/TaskList.stories.js
-
+```js:title=src/components/TaskList.stories.js
 import React from 'react';
-import { storiesOf } from '@storybook/react';
 
 import TaskList from './TaskList';
-import { task, actions } from './Task.stories';
+import * as TaskStories from './Task.stories';
 
-export const defaultTasks = [
-  { ...task, id: '1', title: 'Task 1' },
-  { ...task, id: '2', title: 'Task 2' },
-  { ...task, id: '3', title: 'Task 3' },
-  { ...task, id: '4', title: 'Task 4' },
-  { ...task, id: '5', title: 'Task 5' },
-  { ...task, id: '6', title: 'Task 6' },
-];
+export default {
+  component: TaskList,
+  title: 'TaskList',
+  decorators: [story => <div style={{ padding: '3rem' }}>{story()}</div>],
+};
 
-export const withPinnedTasks = [
-  ...defaultTasks.slice(0, 5),
-  { id: '6', title: 'Task 6 (pinned)', state: 'TASK_PINNED' },
-];
+const Template = args => <TaskList {...args} />;
 
-storiesOf('TaskList', module)
-  .addDecorator(story => <div style={{ padding: '3rem' }}>{story()}</div>)
-  .add('default', () => <TaskList tasks={defaultTasks} {...actions} />)
-  .add('withPinnedTasks', () => <TaskList tasks={withPinnedTasks} {...actions} />)
-  .add('loading', () => <TaskList loading tasks={[]} {...actions} />)
-  .add('empty', () => <TaskList tasks={[]} {...actions} />);
+export const Default = Template.bind({});
+Default.args = {
+  // Shaping the stories through args composition.
+  // The data was inherited from the Default story in task.stories.js.
+  tasks: [
+    { ...TaskStories.Default.args.task, id: '1', title: 'Task 1' },
+    { ...TaskStories.Default.args.task, id: '2', title: 'Task 2' },
+    { ...TaskStories.Default.args.task, id: '3', title: 'Task 3' },
+    { ...TaskStories.Default.args.task, id: '4', title: 'Task 4' },
+    { ...TaskStories.Default.args.task, id: '5', title: 'Task 5' },
+    { ...TaskStories.Default.args.task, id: '6', title: 'Task 6' },
+  ],
+};
+
+export const WithPinnedTasks = Template.bind({});
+WithPinnedTasks.args = {
+  // Shaping the stories through args composition.
+  // Inherited data coming from the Default story.
+  tasks: [
+    ...Default.args.tasks.slice(0, 5),
+    { id: '6', title: 'Task 6 (pinned)', state: 'TASK_PINNED' },
+  ],
+};
+
+export const Loading = Template.bind({});
+Loading.args = {
+  tasks: [],
+  loading: true,
+};
+
+export const Empty = Template.bind({});
+Empty.args = {
+  // Shaping the stories through args composition.
+  // Inherited data coming from the Loading story.
+  ...Loading.args,
+  loading: false,
+};
 ```
 
-`addDecorator()` nos permite añadir algún "contexto" al renderizado de cada tarea. En este caso añadimos relleno alrededor de la lista para que sea más fácil de verificar visualmente.
-
 <div class="aside">
-Los <a href="https://storybook.js.org/docs/react/writing-stories/decorators"><b>Decoradores</b></a> son una forma de proporcionar envoltorios arbitrarios a las historias. En este caso estamos usando un decorador para añadir estilo. También se pueden utilizar para envolver historias en "proveedores", es decir, componentes de la librería que establecen el contexto de React.
+Los <a href="https://storybook.js.org/docs/react/writing-stories/decorators"><b>Decoradores</b></a> son una forma de proporcionar envoltorios arbitrarios a las historias. En este caso, estamos usando una `key`(clave) decoradora en la exportación predeterminada para agregar algo de `padding`(relleno) alrededor del componente renderizado. También se pueden utilizar para envolver historias en `providers`(proveedores), es decir, componentes de la biblioteca que establecen el contexto de React.
 </div>
 
-`task` provee la forma de un `Task` que creamos y exportamos desde el archivo `Task.stories.js`. De manera similar, `actions` define las acciones (llamadas simuladas) que espera un componente `Task`, el cual también necesita la `TaskList`.
+Al importar "TaskStories", pudimos [componer](https://storybook.js.org/docs/react/writing-stories/args#args-composition) los argumentos (args para abreviar) en nuestras historias con un mínimo esfuerzo. De esa forma, se conservan los datos y las acciones (devoluciones de llamada simuladas) esperadas por ambos componentes.
 
-Ahora hay que revisar Storybook para ver las nuevas historias de `TaskList`.
+Ahora consulte Storybook para ver las nuevas historias de `TaskList`.
 
 <video autoPlay muted playsInline loop>
   <source
-    src="/intro-to-storybook/inprogress-tasklist-states.mp4"
+    src="/intro-to-storybook/inprogress-tasklist-states-6-0.mp4"
     type="video/mp4"
   />
 </video>
@@ -110,14 +130,12 @@ Ahora hay que revisar Storybook para ver las nuevas historias de `TaskList`.
 
 Nuestro componente sigue siendo muy rudimentario, pero ahora tenemos una idea de las historias en las que trabajaremos. Podrías estar pensando que el envoltorio de `.list-items` es demasiado simplista. Tienes razón, en la mayoría de los casos no crearíamos un nuevo componente sólo para añadir un envoltorio. Pero la **complejidad real** del componente `TaskList` se revela en los casos extremos `withPinnedTasks`, `loading`, y `empty`.
 
-```javascript
-// src/components/TaskList.js
-
+```js:title=src/components/TaskList.js
 import React from 'react';
 
 import Task from './Task';
 
-function TaskList({ loading, tasks, onPinTask, onArchiveTask }) {
+export default function TaskList({ loading, tasks, onPinTask, onArchiveTask }) {
   const events = {
     onPinTask,
     onArchiveTask,
@@ -131,7 +149,6 @@ function TaskList({ loading, tasks, onPinTask, onArchiveTask }) {
       </span>
     </div>
   );
-
   if (loading) {
     return (
       <div className="list-items">
@@ -144,7 +161,6 @@ function TaskList({ loading, tasks, onPinTask, onArchiveTask }) {
       </div>
     );
   }
-
   if (tasks.length === 0) {
     return (
       <div className="list-items">
@@ -156,12 +172,10 @@ function TaskList({ loading, tasks, onPinTask, onArchiveTask }) {
       </div>
     );
   }
-
   const tasksInOrder = [
     ...tasks.filter(t => t.state === 'TASK_PINNED'),
     ...tasks.filter(t => t.state !== 'TASK_PINNED'),
   ];
-
   return (
     <div className="list-items">
       {tasksInOrder.map(task => (
@@ -170,15 +184,13 @@ function TaskList({ loading, tasks, onPinTask, onArchiveTask }) {
     </div>
   );
 }
-
-export default TaskList;
 ```
 
-El etiquetado añadido da como resultado la siguiente interfaz de usuario:
+El etiquetado añadido da como resultado la siguiente UI:
 
 <video autoPlay muted playsInline loop>
   <source
-    src="/intro-to-storybook/finished-tasklist-states.mp4"
+    src="/intro-to-storybook/finished-tasklist-states-6-0.mp4"
     type="video/mp4"
   />
 </video>
@@ -189,74 +201,78 @@ Observa la posición del elemento anclado en la lista. Queremos que el elemento 
 
 A medida que el componente crece, también lo hacen los parámetros de entrada requeridos de `TaskList`. Define las props requeridas de `TaskList`. Debido a que `Task` es un componente hijo, asegúrate de proporcionar los datos en la forma correcta para renderizarlo. Para ahorrar tiempo y dolores de cabeza, reutiliza los propTypes que definiste en `Task` anteriormente.
 
-```javascript
-// src/components/TaskList.js
-
+```diff:title=src/components/TaskList.js
 import React from 'react';
 import PropTypes from 'prop-types';
 
 import Task from './Task';
 
-function TaskList() {
+export default function TaskList() {
   ...
 }
 
-
-TaskList.propTypes = {
-  loading: PropTypes.bool,
-  tasks: PropTypes.arrayOf(Task.propTypes.task).isRequired,
-  onPinTask: PropTypes.func.isRequired,
-  onArchiveTask: PropTypes.func.isRequired,
-};
-
-TaskList.defaultProps = {
-  loading: false,
-};
-
-export default TaskList;
++ TaskList.propTypes = {
++  /** Checks if it's in loading state */
++  loading: PropTypes.bool,
++  /** The list of tasks */
++  tasks: PropTypes.arrayOf(Task.propTypes.task).isRequired,
++  /** Event to change the task to pinned */
++  onPinTask: PropTypes.func,
++  /** Event to change the task to archived */
++  onArchiveTask: PropTypes.func,
++ };
++ TaskList.defaultProps = {
++  loading: false,
++ };
 ```
 
 ## Pruebas automatizadas
 
-En el capítulo anterior aprendimos a capturar historias de prueba utilizando Storyshots. Con el componente `Task` no había mucha complejidad para probar más allá de que se renderice correctamente. Dado que `TaskList` añade otra capa de complejidad, queremos verificar que ciertas entradas produzcan ciertas salidas de una manera adecuada con pruebas automáticas. Para hacer esto crearemos test unitarios utilizando [Jest](https://facebook.github.io/jest/) junto con un renderizador de prueba como [Enzyme](http://airbnb.io/enzyme/).
+En el capítulo anterior aprendimos a capturar historias de prueba utilizando Storyshots. Con el componente `Task` no había mucha complejidad para probar más allá de que se renderice correctamente. Dado que `TaskList` añade otra capa de complejidad, queremos verificar que ciertas entradas produzcan ciertas salidas de una manera adecuada con pruebas automáticas. Para hacer esto crearemos test unitarios utilizando [React Testing Library](https://testing-library.com/docs/react-testing-library/intro) y también [@storybook/testing-react](https://storybook.js.org/addons/@storybook/testing-react).
 
-![Jest logo](/intro-to-storybook/logo-jest.png)
+![Testing library logo](/intro-to-storybook/testinglibrary-image.jpeg)
 
-### Test unitarios con Jest
+### Test unitarios con React Testing Library
 
-Las historias de Storybook combinadas con pruebas visuales manuales y pruebas de instantáneas (ver arriba) ayudan mucho a evitar errores de interfaz de usuario. Si las historias cubren una amplia variedad de casos de uso de los componentes, y utilizamos herramientas que aseguran que un humano compruebe cualquier cambio en la historia, los errores son mucho menos probables.
+Las historias de Storybook combinadas con pruebas manuales y pruebas de instantáneas (ver arriba) ayudan mucho a evitar errores de interfaz de usuario. Si las historias cubren una amplia variedad de casos de uso de los componentes, y utilizamos herramientas que aseguran que un humano compruebe cualquier cambio en la historia, los errores son mucho menos probables.
 
 Sin embargo, a veces el diablo está en los detalles. Se necesita un framework de pruebas que sea explícito sobre esos detalles. Lo que nos lleva a hacer pruebas unitarias.
 
 En nuestro caso, queremos que nuestra `TaskList` muestre cualquier tarea anclada **antes de** las tareas no ancladas que sean pasadas en la prop `tasks`. Aunque tenemos una historia (`withPinnedTasks`) para probar este escenario exacto; puede ser ambiguo para un revisor humano que si el componente **no** ordena las tareas de esta manera, es un error. Ciertamente no gritará **"¡Mal!"** para el ojo casual.
 
-Por lo tanto, para evitar este problema, podemos usar Jest para renderizar la historia en el DOM y ejecutar algún código de consulta del DOM para verificar las características salientes del resultado.
+Por lo tanto, para evitar este problema, podemos usar React Testing Library para renderizar la historia en el DOM y ejecutar algún código de consulta del DOM para verificar las características salientes del resultado. Lo bueno del formato de la historia es que simplemente podemos importar la historia en nuestras pruebas y renderizarla allí.
 
 Crea un archivo de prueba llamado `src/components/TaskList.test.js`. Aquí vamos a construir nuestras pruebas que hacen afirmaciones acerca del resultado.
 
-```javascript
-// src/components/TaskList.test.js
+```js:title=src/components/TaskList.test.js
+import { render } from '@testing-library/react';
 
-import React from 'react';
-import ReactDOM from 'react-dom';
-import TaskList from './TaskList';
-import { withPinnedTasks } from './TaskList.stories';
+import { composeStories } from '@storybook/testing-react';
+
+import * as TaskListStories from './TaskList.stories'; //👈  Our stories imported here
+
+//👇 composeStories will process all information related to the component (e.g., args)
+const { WithPinnedTasks } = composeStories(TaskListStories);
 
 it('renders pinned tasks at the start of the list', () => {
-  const div = document.createElement('div');
-  const events = { onPinTask: jest.fn(), onArchiveTask: jest.fn() };
-  ReactDOM.render(<TaskList tasks={withPinnedTasks} {...events} />, div);
+  const { container } = render(<WithPinnedTasks />);
 
-  // Esperamos que la tarea titulada "Task 6 (pinned)" se ejecute primero, no al final.
-  const lastTaskInput = div.querySelector('.list-item:nth-child(1) input[value="Task 6 (pinned)"]');
-  expect(lastTaskInput).not.toBe(null);
-
-  ReactDOM.unmountComponentAtNode(div);
+  expect(
+    container.querySelector('.list-item:nth-child(1) input[value="Task 6 (pinned)"]')
+  ).not.toBe(null);
 });
 ```
 
+<div class = "aside">
+💡 <a href="">@storybook/testing-react </a> es un gran complemento que te permite reutilizar tus historias de Storybook en tus pruebas unitarias. Al reutilizar sus historias en sus pruebas, tiene un catálogo de escenarios de componentes listos para ser probados. Además, esta biblioteca compondrá todos los argumentos, decoradores y otra información de tu historia. Como acaba de ver, todo lo que tiene que hacer en sus pruebas es seleccionar qué historia renderizar.
+</div>
+
 ![TaskList test runner](/intro-to-storybook/tasklist-testrunner.png)
 
-Nota que hemos sido capaces de reutilizar la lista de tareas `withPinnedTasks` tanto en la prueba de la historia como en el test unitario; de esta manera podemos continuar aprovechando un recurso existente (los ejemplos que representan configuraciones interesantes de un componente) de más y más maneras.
+Nota que hemos sido capaces de reutilizar la lista de tareas `withPinnedTasks` en nuestro test unitario; de esta manera podemos continuar aprovechando un recurso existente (los ejemplos que representan configuraciones interesantes de un componente) de muchas maneras.
 
-Nota también que esta prueba es bastante frágil. Es posible que a medida que el proyecto madure y que la implementación exacta de `Task` cambie --quizás usando un nombre de clase diferente o un `textarea` en lugar de un `input`-- la prueba falle y necesite ser actualizada. Esto no es necesariamente un problema, sino más bien una indicación de que hay que ser bastante cuidadoso usando pruebas unitarias para la UI. No son fáciles de mantener. En su lugar, confía en las pruebas visuales, de instantáneas y de regresión visual (mira el [capitulo sobre las pruebas](/intro-to-storybook/react/es/test/)) siempre que te sea posible.
+Observa también que esta prueba es bastante frágil. Es posible que a medida que el proyecto madure y que la implementación exacta de `Task` cambie --quizás usando un nombre de clase diferente o un `textarea` en lugar de un `input`-- la prueba falle y necesite ser actualizada. Esto no es necesariamente un problema, sino más bien una indicación de que hay que ser bastante cuidadoso usando pruebas unitarias para la UI. No son fáciles de mantener. En su lugar, confía en las pruebas manuales, de instantáneas y de regresión visual (mira el [capitulo sobre las pruebas](/intro-to-storybook/react/es/test/)) siempre que te sea posible.
+
+<div class="aside">
+💡 ¡No olvides confirmar tus cambios con git!
+</div>
