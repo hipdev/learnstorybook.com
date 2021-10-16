@@ -11,13 +11,12 @@ En este capítulo continuaremos aumentando la sofisticación combinando componen
 
 ## Componentes de contenedor anidados
 
-Como nuestra aplicación es muy simple, la pantalla que construiremos es bastante trivial, simplemente envolviendo el componente `TaskList` (que proporciona sus propios datos a través de Redux) en alguna maqueta y sacando un campo `error` de primer nivel de redux (asumamos que pondremos ese campo si tenemos algún problema para conectarnos a nuestro servidor):
+Como nuestra aplicación es muy simple, la pantalla que construiremos es bastante trivial, simplemente envolviendo el componente `TaskList` (que proporciona sus propios datos a través de Redux) en alguna maqueta y sacando un campo `error` de primer nivel de redux (asumamos que pondremos ese campo si tenemos algún problema para conectarnos a nuestro servidor). Crea el archivo `InboxScreen.js` en tu directorio `components`:
 
-```javascript
-// src/components/InboxScreen.js
-
+```js:title=src/components/InboxScreen.js
 import React from 'react';
 import PropTypes from 'prop-types';
+
 import { connect } from 'react-redux';
 
 import TaskList from './TaskList';
@@ -29,12 +28,11 @@ export function PureInboxScreen({ error }) {
         <div className="wrapper-message">
           <span className="icon-face-sad" />
           <div className="title-message">Oh no!</div>
-          <div className="subtitle-message">Algo va mal</div>
+          <div className="subtitle-message">Algo salió mal</div>
         </div>
       </div>
     );
   }
-
   return (
     <div className="page lists-show">
       <nav>
@@ -48,6 +46,7 @@ export function PureInboxScreen({ error }) {
 }
 
 PureInboxScreen.propTypes = {
+  /** El mensaje de error */
   error: PropTypes.string,
 };
 
@@ -58,49 +57,32 @@ PureInboxScreen.defaultProps = {
 export default connect(({ error }) => ({ error }))(PureInboxScreen);
 ```
 
-También cambiamos el componente `App` para renderizar la pantalla de la bandeja de entrada `InboxScreen` (normalmente usaríamos un router para elegir la pantalla correcta, pero no nos preocupemos por ello aquí):
-
-```javascript
-// src/App.js
-
-import React, { Component } from 'react';
-import { Provider } from 'react-redux';
-import store from './lib/redux';
-
-import InboxScreen from './components/InboxScreen';
-
-class App extends Component {
-  render() {
-    return (
-      <Provider store={store}>
-        <InboxScreen />
-      </Provider>
-    );
-  }
-}
-
-export default App;
-```
-
 Sin embargo, donde las cosas se ponen interesantes es en la representación de la historia en Storybook.
 
 Como vimos anteriormente, el componente `TaskList` es un **contenedor** que renderiza el componente de presentación `PureTaskList`. Por definición, los componentes de un contenedor no pueden simplemente hacer render de forma aislada; esperan que se les pase algún contexto o que se conecten a un servicio. Lo que esto significa es que para hacer render de un contenedor en Storybook, debemos mockearlo (es decir, proporcionar una versión ficticia) del contexto o servicio que requiere.
 
 Al colocar la "Lista de tareas" `TaskList` en Storybook, pudimos esquivar este problema simplemente renderizando la `PureTaskList` y evadiendo el contenedor. Haremos algo similar y renderizaremos la `PureInboxScreen` en Storybook también.
 
-Sin embargo, para la `PureInboxScreen` tenemos un problema porque aunque la `PureInboxScreen` en si misma es presentacional, su hijo, la `TaskList`, no lo es. En cierto sentido la `PureInboxScreen` ha sido contaminada por la "contenedorización". Así que cuando preparamos nuestras historias:
+Sin embargo, para la `PureInboxScreen` tenemos un problema porque aunque la `PureInboxScreen` en si misma es presentacional, su hijo, la `TaskList`, no lo es. En cierto sentido la `PureInboxScreen` ha sido contaminada por la "contenedorización". Así que cuando preparamos nuestras historias en `InboxScreen.stories.js`:
 
-```javascript
-// src/components/InboxScreen.stories.js
-
+```js:title=src/components/InboxScreen.stories.js
 import React from 'react';
-import { storiesOf } from '@storybook/react';
 
 import { PureInboxScreen } from './InboxScreen';
 
-storiesOf('InboxScreen', module)
-  .add('default', () => <PureInboxScreen />)
-  .add('error', () => <PureInboxScreen error="Something" />);
+export default {
+  component: PureInboxScreen,
+  title: 'InboxScreen',
+};
+
+const Template = args => <PureInboxScreen {...args} />;
+
+export const Default = Template.bind({});
+
+export const Error = Template.bind({});
+Error.args = {
+  error: 'Something',
+};
 ```
 
 Vemos que aunque la historia de `error` funciona bien, tenemos un problema en la historia `default`, porque la `TaskList` no tiene una store de Redux a la que conectarse. (También encontrarás problemas similares cuando intentes probar la `PureInboxScreen` con un test unitario).
@@ -119,32 +101,41 @@ Por otro lado, la transmisión de datos a nivel jerárquico es un enfoque legít
 
 La buena noticia es que es fácil suministrar una store de Redux a la `InboxScreen` en una historia! Podemos usar una versión mockeada de la store de Redux provista en un decorador:
 
-```javascript
-// src/components/InboxScreen.stories.js
-
+```diff:title=src/components/InboxScreen.stories.js
 import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
-import { Provider } from 'react-redux';
++ import { Provider } from 'react-redux';
 
 import { PureInboxScreen } from './InboxScreen';
-import { defaultTasks } from './TaskList.stories';
 
-// Un mock super simple de un store de redux
-const store = {
-  getState: () => {
-    return {
-      tasks: defaultTasks,
-    };
-  },
-  subscribe: () => 0,
-  dispatch: action('dispatch'),
++ import { action } from '@storybook/addon-actions';
+
++ import * as TaskListStories from './TaskList.stories';
+
++ // Una simulación súper simple de un store de redux
++ const store = {
++   getState: () => {
++    return {
++      tasks: TaskListStories.Default.args.tasks,
++    };
++   },
++   subscribe: () => 0,
++   dispatch: action('dispatch'),
++ };
+
+export default {
+  component: PureInboxScreen,
++ decorators: [story => <Provider store={store}>{story()}</Provider>],
+  title: 'InboxScreen',
 };
 
-storiesOf('InboxScreen', module)
-  .addDecorator(story => <Provider store={store}>{story()}</Provider>)
-  .add('default', () => <PureInboxScreen />)
-  .add('error', () => <PureInboxScreen error="Something" />);
+const Template = args => <PureInboxScreen {...args} />;
+
+export const Default = Template.bind({});
+
+export const Error = Template.bind({});
+Error.args = {
+  error: 'Something',
+};
 ```
 
 Existen enfoques similares para proporcionar un contexto simulado para otras bibliotecas de datos, tales como [Apollo](https://www.npmjs.com/package/apollo-storybook-decorator), [Relay](https://github.com/orta/react-storybooks-relay-container) y algunas otras.
@@ -154,7 +145,7 @@ Recorrer los estados en Storybook hace que sea fácil comprobar que lo hemos hec
 <video autoPlay muted playsInline loop >
 
   <source
-    src="/intro-to-storybook/finished-inboxscreen-states.mp4"
+    src="/intro-to-storybook/finished-inboxscreen-states-6-0.mp4"
     type="video/mp4"
   />
 </video>
@@ -173,3 +164,7 @@ Empezamos desde abajo con `Task`, luego progresamos a `TaskList`, ahora estamos 
 [**El desarrollo basado en componentes**](https://www.componentdriven.org/) te permite expandir gradualmente la complejidad a medida que asciendes en la jerarquía de componentes. Entre los beneficios están un proceso de desarrollo más enfocado y una mayor cobertura de todas las posibles mutaciones de la interfaz de usuario. En resumen, la CDD te ayuda a construir interfaces de usuario de mayor calidad y complejidad.
 
 Aún no hemos terminado, el trabajo no termina cuando se construye la interfaz de usuario. También tenemos que asegurarnos de que siga siendo duradero a lo largo del tiempo.
+
+<div class="aside">
+💡 ¡No olvides confirmar tus cambios con git!
+</div>
